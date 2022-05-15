@@ -1,73 +1,27 @@
 #!/usr/bin/env python3
-"""
-    Hidden Markov Models - Absorbing Chains
-    A Markov chain is an absorbing Markov Chain if
-    - It has at least one absorbing state
-AND
-    - From any non-absorbing state in the Markov chain, it is possible
-    to eventually move to some absorbing state (in one or more transitions).
-"""
-import numpy as np
+"""Function that determines if a markov chain is absorbing"""
 
-def get_to_abs_state(abs_states, i, P):
-    """
-    Method to append the index of non-absorbing states
-    """
-    culumn = P.T[i]
-    for i in range(P.shape[0]):
-        if culumn[i] > 0:
-            # there is a possibility to move to an absorbing state
-            abs_states.append(i)
-    return abs_states
+import numpy as np
 
 
 def absorbing(P):
-    """
-    Method to determine if a markov chain is absorbing.
-    Parameters:
-        P ((square 2D numpy.ndarray) of shape (n, n)):
-         representing the transition matrix.
-        - P[i, j]: the probability of transitioning from state i to state j
-        - n : the number of states in the markov chain
-    Returns:
-        True if it is absorbing, or False on failure
-    """
-    # https://math.libretexts.org/Bookshelves/Applied_Mathematics/Applied_Finite_Mathematics_(Sekhon_and_Bloom)/10%3A_Markov_Chains/10.04%3A_Absorbing_Markov_Chains
-    if not isinstance(P, np.ndarray) or P.ndim != 2:
+    """Function that determines if a markov chain is absorbing"""
+    if type(P) is not np.ndarray or len(P.shape) != 2:
         return False
-
-    n, m = np.shape(P)
-
-    if n != m:
+    if P.shape[0] != P.shape[1]:
         return False
-
-    if not np.all(np.isclose(P.sum(axis=1), 1)):
+    if np.min(P ** 2) < 0 or np.min(P ** 3) < 0:
         return False
-
-
-    # have all or at least one absorbing state
-    diag = np.diagonal(P)
-
-    if not np.any( diag == 1):
-        return False
-
-    if np.all( diag == 1):
+    ab_state = np.where(np.diag(P) == 1)
+    if len(ab_state[0]) == P.shape[0]:
         return True
-
-    absorbing_states = []
-    # all absorbing states
-    for i in range(len(diag)):
-        if diag[i] == 1:
-            # save the index
-            absorbing_states.append(i)
-
-    for i in range(n):
-        if i in absorbing_states:
-            absorbing_states = get_to_abs_state(absorbing_states, i, P)
-
-    # for i in range(n):
-    #     if i in absorbing_states:
-    #         absorbing_states = get_to_abs_state(absorbing_states, i, P)
-
-    absorbing_states = set(absorbing_states) # remove repeated states
-    return len(absorbing_states) == n
+    if len(ab_state[0]) == 0:
+        return False
+    B = np.copy(P)
+    B = np.delete(np.delete(B, ab_state[0], 0), ab_state[0], 1)
+    In = np.identity(B.shape[0])
+    try:
+        result = np.linalg.inv(In - B)
+        return True
+    except Exception:
+        return False
